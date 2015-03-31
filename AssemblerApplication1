@@ -75,7 +75,7 @@ Timer0Over: //Timer0 overflow interrupt
 /*
 LDI R22, 0xFF
 CPSE (overflowsCounterHigh&overflowsCounterLow), R22	//if bitwise addendum of the overflowsCounter's parts returns 
-                  			  								      			//0xFF, skip next string
+				    			//0xFF, skip next string
 */
 ADIW overflowsCounterHigh:overflowsCounterLow, 1		//incrementing the whole word
 
