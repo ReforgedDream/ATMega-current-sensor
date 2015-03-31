@@ -2,10 +2,10 @@
 .include "m16def.inc"
 
 //constants definition
-.equ segind0 = 0x3F //7-segment LED indicator's digits definitions
+.equ segind0 = 0x3	//7-segment LED indicator's digits definitions
 .equ segind1 = 0x6	//		 0
 .equ segind2 = 0x5B	//		 _
-.equ segind3 = 0x4F	//	5	|_|		1  <--6
+.equ segind3 = 0x4F	//	5	|_|	1  <--6
 .equ segind4 = 0x66	//	4	|_|.7	2 
 .equ segind5 = 0x6D	//
 .equ segind6 = 0x7D	//		 3
@@ -13,10 +13,13 @@
 .equ segind8 = 0x7F	//
 .equ segind9 = 0x6F	//
 
+.equ presetLow = 0x24	//There we can set a desired period of time for precise delay (2 bytes long)
+.equ presetHigh = 0xF4	//on 16 MHz and with no prescaler, there is approx. 62500 (0xF424) overflows per second
+
 //symbolic custom registers names
-.def digitToDisp1 = R23		    	//digit to be displayed on the LED. Only 0 to 9 digits defined!
-.def overflowsCounterLow = R24	//incrementing every time when overflow of the timer0 occurs
-.def overflowsCounterHigh = R25	//my my, there's too many overflows for a humble 8-bit register
+.def digitToDisp1 = R23			//digit to be displayed on the LED. Only 0 to 9 digits defined!
+.def overflowsCounterLow = R24		//incrementing every time when overflow of the timer0 occurs
+.def overflowsCounterHigh = R25		//my my, there's too many overflows for a humble 8-bit register
 
 .CSEG
 //Reset and Interrupt Vectors table
@@ -71,26 +74,27 @@
 
 ;--------------------------------------------------------------------------------------------
 //Interrupts handler
-Timer0Over: //Timer0 overflow interrupt
+Timer0Over:	//Timer0 overflow interrupt
 /*
 LDI R22, 0xFF
-CPSE (overflowsCounterHigh&overflowsCounterLow), R22	//if bitwise addendum of the overflowsCounter's parts returns 
-				    			//0xFF, skip next string
+CPSE (overflowsCounterHigh&overflowsCounterLow), R22	//if bitwise AND of the overflowsCounter's parts returns 
+				    			//0xFF, then skip next string
 */
-ADIW overflowsCounterHigh:overflowsCounterLow, 1		//incrementing the whole word
+ADIW overflowsCounterHigh:overflowsCounterLow, 1	//incrementing the whole word
 
-CPI overflowsCounterHigh, 0xF4		//on 16 MHz and with no prescaler, there is approx. 62500 (0xF424) overflows per second
-BREQ checking2						//if higher register contains 0xF4...
+CPI overflowsCounterHigh, presetHigh		//if higher register contains half of preset...
+BREQ checking2
 RETI
 checking2: 
-	CPI overflowsCounterLow, 0x24	//AND lower register contains 0x24...
-	BREQ adding						//....then go to executing our payload
+	CPI overflowsCounterLow, presetLow	//AND lower register contains another half...
+	BREQ payload				//....then go to executing our payload
 RETI
 
-adding:
-	LDI overflowsCounterLow, 0x00	//this string executes once in a certain period
-	LDI overflowsCounterHigh, 0x00	//zeroing overflows counter
-	//payload
+payload:
+	LDI overflowsCounterLow, 0x00	//zeroing overflows counter
+	LDI overflowsCounterHigh, 0x00
+	
+	//this string executes once in a certain period
 RETI
 ;--------------------------------------------------------------------------------------------
 /*Obsolete
@@ -105,25 +109,25 @@ Reset:
 	LDI R16, High(RAMEND)
 	OUT SPH, R16
 	LDI R16, 0x00
-	SEI						//interrupts enabled globally
+	SEI			//interrupts enabled globally
 
-LDI digitToDisp, 0x00	//initializing periods counter
+LDI digitToDisp, 0x00		//initializing periods counter
 
 LDI R16, 0xFF
 OUT DDRC, R16	//write 1-s into each port C...
 OUT DDRD, R16	//and port D direction registers
 
-LDI R16, 0b_0000_0001	//set CS00 bit in TCCR0 register
+LDI R16, 0b_0000_0001		//set CS00 bit in TCCR0 register
 OUT TCCR0, R16			//now using system clock for timer0 without prescaler
 
-LDI R16, 0b_0000_0001	//set TOIE0 in TIMSK register
+LDI R16, 0b_0000_0001		//set TOIE0 in TIMSK register
 OUT TIMSK, R16			//now we have an overflow interrupt enabled for timer0
 //TIFR.0 == TOV0 - timer0 overflow flag
 
-LDI R16, 0x4	//4h=00000100b, turn on PC2 (3rd digit)
+LDI R16, 0x4		//4h=00000100b, turn on PC2 (3rd digit)
 OUT PORTC, R16
 
-LDI R16, 0x00	//cleaning R16 for the order's sake
+LDI R16, 0x00		//cleaning R16 for the order's sake
 
 Start:
 CPI digitToDisp, 0	//branch if 0 second
@@ -146,54 +150,54 @@ CPI digitToDisp, 8	//branch if 8th second
 BREQ second8
 CPI digitToDisp, 9	//branch if 9th second
 BREQ second9
-RJMP Start	//checking decimal seconds counter infinitely
+RJMP Start		//checking decimal seconds counter infinitely
 
 second0:
 LDI R16, segind0	//displays 0...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second1:
 LDI R16, segind1	//displays 1...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second2:
 LDI R16, segind2	//displays 2...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second3:
 LDI R16, segind3	//displays 3...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second4:
 LDI R16, segind4	//displays 4...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second5:
 LDI R16, segind5	//displays 5...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second6:
 LDI R16, segind6	//displays 6...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second7:
 LDI R16, segind7	//displays 7...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second8:
 LDI R16, segind8	//displays 8...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
 
 second9:
 LDI R16, segind9	//displays 9...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start			//go checking
+RJMP Start		//go checking
