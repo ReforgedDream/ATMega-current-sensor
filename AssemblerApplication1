@@ -13,14 +13,17 @@
 .equ segind8 = 0x7F	//
 .equ segind9 = 0x6F	//
 
-.equ presetLow = 0x24	//Here we can set a desired period of time for a precise delay (2 bytes long)
-.equ presetHigh = 0xF4	//on 16 MHz and with no prescaler, there is approx. 62500 (0xF424) overflows per second
+.equ presetLow = 0xA1	//Here we can set a desired period of time for a precise delay (2 bytes long)
+.equ presetHigh = 0x01	//on 16 MHz and with no prescaler, there is approx. 62500 (0xF424) overflows per second
 
 //symbolic custom registers names
-.def numberToDisp = R23			//number to be displayed on the LED
+.def digitToDisp1 = R21			//1st digit to be displayed on the LED. Only digits from 0 to 9 are defined!
+.def digitToDisp2 = R22			//2nd digit to be displayed on the LED
+.def digitToDisp3 = R23			//3rd digit to be displayed on the LED
 .def overflowsCounterLow = R24		//incrementing every time when overflow of the timer0 occurs
 .def overflowsCounterHigh = R25		//my my, there's too many overflows for a humble 8-bit register
 
+;--------------------------------------------------------------------------------------------
 .CSEG
 //Reset and Interrupt Vectors table
 
@@ -73,7 +76,7 @@
 .ORG INT_VECTORS_SIZE	;end of table
 
 ;--------------------------------------------------------------------------------------------
-//Interrupts handler
+//Interrupts Handler//
 Timer0Over:	//Timer0 overflow interrupt
 /*
 LDI R22, 0xFF
@@ -93,14 +96,15 @@ RETI
 payload:
 	LDI overflowsCounterLow, 0x00	//zeroing the overflows counter
 	LDI overflowsCounterHigh, 0x00
-	
-	//this string executes once in a certain period
+//this string executes once in a certain period
+	INC R17				//Circling from 0 to 2 periodically (fast), for determine which digit should be lighted
+	CPI R17, 3			//compare with 3
+	BRSH moreThan2		//BRanch if Same or Higher than 3
+	RETI
+moreThan2:	LDI R17, 0	//reset to 0
+
 RETI
-;--------------------------------------------------------------------------------------------
-/*Obsolete
-//LDI R22, 61		//just because stupid CPSE can't into direct numbers
-//CPSE R21, R22
-Obsolete*/
+//End of Interrupts Handler//
 ;--------------------------------------------------------------------------------------------
 
 Reset:
@@ -110,7 +114,10 @@ Reset:
 	OUT SPH, R16
 	SEI			//interrupts enabled globally
 
-LDI numberToDisp, 0x00		//initializing periods counter...
+LDI digitToDisp1, 0x00		//initializing the LED digits...
+LDI digitToDisp2, 0x00
+LDI digitToDisp3, 0x00
+
 LDI overflowsCounterLow, 0x00	//...and the register pair of overflows counter
 LDI overflowsCounterHigh, 0x00 
 
@@ -125,82 +132,127 @@ LDI R16, 0b_0000_0001		//set TOIE0 in TIMSK register
 OUT TIMSK, R16			//now we have an overflow interrupt enabled for timer0
 //TIFR.0 == TOV0 - timer0 overflow flag
 
-LDI R16, 0x4		//4h=00000100b, turn on PC2 (3rd digit)
-OUT PORTC, R16
-
 LDI R16, 0x00		//cleaning R16 for the order's sake
 
-Start:
-/*
-CPI digitToDisp, 0	//branch if 0 second
-BREQ second0
-CPI digitToDisp, 1	//branch if 1st second
-BREQ second1
-CPI digitToDisp, 2	//branch if 2nd second
-BREQ second2
-CPI digitToDisp, 3	//branch if 3rd second
-BREQ second3
-CPI digitToDisp, 4	//branch if 4th second
-BREQ second4
-CPI digitToDisp, 5	//branch if 5th second
-BREQ second5
-CPI digitToDisp, 6	//branch if 6th second
-BREQ second6
-CPI digitToDisp, 7	//branch if 7th second
-BREQ second7
-CPI digitToDisp, 8	//branch if 8th second
-BREQ second8
-CPI digitToDisp, 9	//branch if 9th second
-BREQ second9
-*/
-RJMP Start		//checking decimal seconds counter infinitely
+LDI digitToDisp1, 1 //display "123" on the LED
+LDI digitToDisp2, 2
+LDI digitToDisp3, 3
 
-second0:
+;--------------------------------------------------------------------------------------------
+//Main Routine//
+Start:
+
+CPI R17, 0			//Is it time to display 1st digit of LED?
+BREQ firstDig
+
+CPI R17, 1			//Is it time to display 2nd digit of LED?
+BREQ secondDig
+
+CPI R17, 2			//Is it time to display 3rd digit of LED?
+BREQ thirdDig
+
+RJMP Start		//Go to start
+//End of Main Routine//
+;--------------------------------------------------------------------------------------------
+
+firstDig:					
+.undef theDigitNow		//stupid unoptimal voodoo directives magic
+.def theDigitNow=R21		//symbolic name for "variable" that contains referable number of digit that should be lighten
+LDI R16, 0b_0000_0001		//turn on PC0 (1st digit)
+OUT PORTC, R16
+RJMP auxStart			//go to specific digit displaying
+
+secondDig:
+.undef theDigitNow
+.def theDigitNow=R22		//symbolic name for "variable" that contains referable number of digit that should be lighten
+LDI R16, 0b_0000_0010		//turn on PC1 (2nd digit)
+OUT PORTC, R16
+RJMP auxStart			//go to specific digit displaying
+
+thirdDig:
+.undef theDigitNow
+.def theDigitNow=R23		//symbolic name for "variable" that contains referable number of digit that should be lighten
+LDI R16, 0b_0000_0100		//turn on PC2 (3rd digit)
+OUT PORTC, R16
+RJMP auxStart			//go to specific digit displaying
+
+;--------------------------------------------------------------------------------------------
+//Auxiliary Routine//
+auxStart:		//if one of 3 digits is chosen, then select a sign to be displayed
+
+CPI theDigitNow, 0	//depending on what current digit should shows, jumping onto the digits displaying
+BREQ disp0
+CPI theDigitNow, 1
+BREQ disp1
+CPI theDigitNow, 2
+BREQ disp2
+CPI theDigitNow, 3
+BREQ disp3
+CPI theDigitNow, 4
+BREQ disp4
+CPI theDigitNow, 5
+BREQ disp5
+CPI theDigitNow, 6
+BREQ disp6
+CPI theDigitNow, 7
+BREQ disp7
+CPI theDigitNow, 8
+BREQ disp8
+CPI theDigitNow, 9
+BREQ disp9
+
+//There is no overflow protection, there's no way to display hexadecimal numbers or stuff!
+
+RJMP Start		//Go to start of Main Routine
+//End of Auxiliary Routine//
+;--------------------------------------------------------------------------------------------
+
+disp0:
 LDI R16, segind0	//displays 0...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second1:
+disp1:
 LDI R16, segind1	//displays 1...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second2:
+disp2:
 LDI R16, segind2	//displays 2...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second3:
+disp3:
 LDI R16, segind3	//displays 3...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second4:
+disp4:
 LDI R16, segind4	//displays 4...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second5:
+disp5:
 LDI R16, segind5	//displays 5...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second6:
+disp6:
 LDI R16, segind6	//displays 6...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second7:
+disp7:
 LDI R16, segind7	//displays 7...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second8:
+disp8:
 LDI R16, segind8	//displays 8...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
 
-second9:
+disp9:
 LDI R16, segind9	//displays 9...
 OUT PORTD, R16		//...on the LED indicator
-RJMP Start		//go checking
+RJMP Start		//Get back to the start
