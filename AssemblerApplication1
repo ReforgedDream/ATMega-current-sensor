@@ -2,7 +2,7 @@
 .include "m16def.inc"
 
 //constants definition
-.equ segind0 = 0x3	//7-segment LED indicator's digits definitions
+.equ segind0 = 0x3F	//7-segment LED indicator's digits definitions
 .equ segind1 = 0x6	//		 0
 .equ segind2 = 0x5B	//		 _
 .equ segind3 = 0x4F	//	5	|_|	1  <--6
@@ -13,11 +13,11 @@
 .equ segind8 = 0x7F	//
 .equ segind9 = 0x6F	//
 
-.equ presetLow = 0x24	//There we can set a desired period of time for precise delay (2 bytes long)
+.equ presetLow = 0x24	//Here we can set a desired period of time for a precise delay (2 bytes long)
 .equ presetHigh = 0xF4	//on 16 MHz and with no prescaler, there is approx. 62500 (0xF424) overflows per second
 
 //symbolic custom registers names
-.def digitToDisp1 = R23			//digit to be displayed on the LED. Only 0 to 9 digits defined!
+.def numberToDisp = R23			//number to be displayed on the LED
 .def overflowsCounterLow = R24		//incrementing every time when overflow of the timer0 occurs
 .def overflowsCounterHigh = R25		//my my, there's too many overflows for a humble 8-bit register
 
@@ -82,16 +82,16 @@ CPSE (overflowsCounterHigh&overflowsCounterLow), R22	//if bitwise AND of the ove
 */
 ADIW overflowsCounterHigh:overflowsCounterLow, 1	//incrementing the whole word
 
-CPI overflowsCounterHigh, presetHigh		//if higher register contains half of preset...
+CPI overflowsCounterHigh, presetHigh		//if the higher register contains half of preset...
 BREQ checking2
 RETI
 checking2: 
-	CPI overflowsCounterLow, presetLow	//AND lower register contains another half...
+	CPI overflowsCounterLow, presetLow	//AND the lower register contains another half...
 	BREQ payload				//....then go to executing our payload
 RETI
 
 payload:
-	LDI overflowsCounterLow, 0x00	//zeroing overflows counter
+	LDI overflowsCounterLow, 0x00	//zeroing the overflows counter
 	LDI overflowsCounterHigh, 0x00
 	
 	//this string executes once in a certain period
@@ -108,14 +108,15 @@ Reset:
 	OUT SPL, R16
 	LDI R16, High(RAMEND)
 	OUT SPH, R16
-	LDI R16, 0x00
 	SEI			//interrupts enabled globally
 
-LDI digitToDisp, 0x00		//initializing periods counter
+LDI numberToDisp, 0x00		//initializing periods counter...
+LDI overflowsCounterLow, 0x00	//...and the register pair of overflows counter
+LDI overflowsCounterHigh, 0x00 
 
 LDI R16, 0xFF
 OUT DDRC, R16	//write 1-s into each port C...
-OUT DDRD, R16	//and port D direction registers
+OUT DDRD, R16	//...and port D direction registers
 
 LDI R16, 0b_0000_0001		//set CS00 bit in TCCR0 register
 OUT TCCR0, R16			//now using system clock for timer0 without prescaler
@@ -130,6 +131,7 @@ OUT PORTC, R16
 LDI R16, 0x00		//cleaning R16 for the order's sake
 
 Start:
+/*
 CPI digitToDisp, 0	//branch if 0 second
 BREQ second0
 CPI digitToDisp, 1	//branch if 1st second
@@ -150,6 +152,7 @@ CPI digitToDisp, 8	//branch if 8th second
 BREQ second8
 CPI digitToDisp, 9	//branch if 9th second
 BREQ second9
+*/
 RJMP Start		//checking decimal seconds counter infinitely
 
 second0:
