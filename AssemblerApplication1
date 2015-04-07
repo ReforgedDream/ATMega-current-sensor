@@ -12,9 +12,19 @@
 .equ segind7 = 0x7	//
 .equ segind8 = 0x7F	//
 .equ segind9 = 0x6F	//
+.equ segindDash = 0b_0000_0010	//"-" sign
+.equ segindA = 0b_1110_1110		//"A"
+.equ segindB = 0b_0011_1110		//"b"
+.equ segindC = 0b_1001_1100		//"C"
+.equ segindD = 0b_0111_1010		//"d"
+.equ segindE = 0b_1001_1110		//"E"
+.equ segindF = 0b_1000_1110		//"F"
+
+.equ segindR = 0b_0000_1010		//"r"
 
 .equ presetLow = 0xA1	//Here we can set a desired period of time for a precise delay (2 bytes long)
 .equ presetHigh = 0x01	//on 16 MHz and with no prescaler, there is approx. 62500 (0xF424) overflows per second
+//150 Hz (0x01A1) works well for the LED indicator
 
 //symbolic custom registers names
 .def digitToDisp1 = R21			//1st digit to be displayed on the LED. Only digits from 0 to 9 are defined!
@@ -118,8 +128,10 @@ LDI digitToDisp1, 0x00		//initializing the LED digits...
 LDI digitToDisp2, 0x00
 LDI digitToDisp3, 0x00
 
-LDI overflowsCounterLow, 0x00	//...and the register pair of overflows counter
+LDI overflowsCounterLow, 0x00	//...and the register pair of overflows counter...
 LDI overflowsCounterHigh, 0x00 
+
+LDI R17, 0x00					//...and the cycling register R17
 
 LDI R16, 0xFF
 OUT DDRC, R16	//write 1-s into each port C...
@@ -132,9 +144,9 @@ LDI R16, 0b_0000_0001		//set TOIE0 in TIMSK register
 OUT TIMSK, R16			//now we have an overflow interrupt enabled for timer0
 //TIFR.0 == TOV0 - timer0 overflow flag
 
-LDI R16, 0x00		//cleaning R16 for the order's sake
+LDI R16, 0x00			//cleaning R16 for the order's sake
 
-LDI digitToDisp1, 1 //display "123" on the LED
+LDI digitToDisp1, 1	//display "123" on the LED
 LDI digitToDisp2, 2
 LDI digitToDisp3, 3
 
@@ -155,27 +167,17 @@ RJMP Start		//Go to start
 //End of Main Routine//
 ;--------------------------------------------------------------------------------------------
 
-firstDig:					
-MOV R18, R21				//Just put an appropriate number (that should be lighten) in R18
-LDI R16, 0b_0000_0001		//turn on PC0 (1st digit)
-OUT PORTC, R16
-RJMP auxStart				//go to specific digit displaying
-
-secondDig:
-MOV R18, R22				//Just put an appropriate number (that should be lighten) in R18
-LDI R16, 0b_0000_0010		//turn on PC1 (2nd digit)
-OUT PORTC, R16
-RJMP auxStart				//go to specific digit displaying
-
-thirdDig:
-MOV R18, R23				//Just put an appropriate number (that should be lighten) in R18
-LDI R16, 0b_0000_0100		//turn on PC2 (3rd digit)
-OUT PORTC, R16
-RJMP auxStart				//go to specific digit displaying
-
-;--------------------------------------------------------------------------------------------
 //Auxiliary Routine//
 auxStart:		//if one of 3 digits is chosen, then select a sign to be displayed
+
+CLT					//if everything will be correct (see below) then clear the T flag (which means "incorrect number")
+LDI R19, 0x10		//Just because stupid (but useful) CPSE cannot into immediate numbers
+CPSE R18, R19		//if one of the registers is more than F...
+SET					//then set the T flag (which means "incorrect number")
+
+LDI R19, 0x00		//
+CPSE R18, R19		//same for less than 0
+SET					//
 
 CPI R18, 0	//depending on what current digit should shows, jumping onto the digits displaying
 BREQ disp0
@@ -197,11 +199,44 @@ CPI R18, 8
 BREQ disp8
 CPI R18, 9
 BREQ disp9
+CPI R18, 0x0A
+BREQ dispA
+CPI R18, 0x0B
+BREQ dispB
+CPI R18, 0x0C
+BREQ dispC
+CPI R18, 0x0D
+BREQ dispD
+CPI R18, 0x0E
+BREQ dispE
+CPI R18, 0x0F
+BREQ dispF
 
-//There is no overflow protection, there's no way to display hexadecimal numbers or stuff!
-
-RJMP Start		//Go to start of Main Routine
+RJMP Start		//Go to start of the Main Routine
 //End of Auxiliary Routine//
+;--------------------------------------------------------------------------------------------
+
+firstDig:
+LDI R16, 0b_0000_0001		//turn on PC0 (1st digit)
+OUT PORTC, R16
+BRTS dispE					//if the number is incorrect, display the "E" letter (Err)
+	MOV R18, R21				//Just put an appropriate number (that should be lighten) in R18
+RJMP auxStart				//go to specific digit displaying
+
+secondDig:
+LDI R16, 0b_0000_0010		//turn on PC1 (2nd digit)
+OUT PORTC, R16
+BRTS dispR					//if the number is incorrect, display the "r" letter (Err)
+	MOV R18, R22				//Just put an appropriate number (that should be lighten) in R18
+RJMP auxStart				//go to specific digit displaying
+
+thirdDig:
+LDI R16, 0b_0000_0100		//turn on PC2 (3rd digit)
+OUT PORTC, R16
+BRTS dispR					//if the number is incorrect, display the "r" letter (Err)
+	MOV R18, R23				//Just put an appropriate number (that should be lighten) in R18
+RJMP auxStart				//go to specific digit displaying
+
 ;--------------------------------------------------------------------------------------------
 
 disp0:
@@ -251,5 +286,49 @@ RJMP Start		//Get back to the start
 
 disp9:
 LDI R16, segind9	//displays 9...
+OUT PORTD, R16		//...on the LED indicator
+RJMP Start		//Get back to the start
+
+dispA:
+LDI R16, segindA	//displays A...
+OUT PORTD, R16		//...on the LED indicator
+RJMP Start		//Get back to the start
+
+dispB:
+LDI R16, segindB	//displays B...
+OUT PORTD, R16		//...on the LED indicator
+RJMP Start		//Get back to the start
+
+dispC:
+LDI R16, segindC	//displays C...
+OUT PORTD, R16		//...on the LED indicator
+RJMP Start		//Get back to the start
+
+dispD:
+LDI R16, segindD	//displays D...
+OUT PORTD, R16		//...on the LED indicator
+RJMP Start		//Get back to the start
+
+dispE:
+LDI R16, segindE	//displays E...
+OUT PORTD, R16		//...on the LED indicator
+RJMP Start		//Get back to the start
+
+dispF:
+LDI R16, segindF	//displays F...
+OUT PORTD, R16		//...on the LED indicator
+RJMP Start		//Get back to the start
+
+;---
+
+dispR:
+LDI R16, segindR	//displays R...
+OUT PORTD, R16		//...on the LED indicator
+RJMP Start		//Get back to the start
+
+;---
+
+dispDash:
+LDI R16, segindDash	//displays "-"...
 OUT PORTD, R16		//...on the LED indicator
 RJMP Start		//Get back to the start
