@@ -1,12 +1,12 @@
 Pin map:
 	   ~ ~ ~ ~ ~ ~ ~  ~ ~ ~ ~ ~ ~ ~ ~
-	A--|14 (PD0)	        	(PC5) 27|-- 
-	B--|15 (PD1)		        (PC4) 26|-- 
+	A--|14 (PD0)	       	(PC5) 27|-- 
+	B--|15 (PD1)		(PC4) 26|-- 
 	C--|16 (PD2)  ATMega16	(PC3) 25|-- 
-	D--|17 (PD3)  DIP	      (PC2) 24|--3rd digit
-	E--|18 (PD4)        		(PC1) 23|--2nd digit
-	F--|19 (PD5)		        (PC0) 22|--1st digit
-	G--|20 (PD6)	        	(PD7) 21|--DP
+	D--|17 (PD3)  DIP	(PC2) 24|--3rd digit
+	E--|18 (PD4)        	(PC1) 23|--2nd digit
+	F--|19 (PD5)		(PC0) 22|--1st digit
+	G--|20 (PD6)	        (PD7) 21|--DP
 	    ----------------------------
 
 DP is for "decimal point"
