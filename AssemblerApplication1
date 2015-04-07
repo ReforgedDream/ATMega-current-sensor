@@ -156,49 +156,46 @@ RJMP Start		//Go to start
 ;--------------------------------------------------------------------------------------------
 
 firstDig:					
-.undef theDigitNow		//stupid unoptimal voodoo directives magic
-.def theDigitNow=R21		//symbolic name for "variable" that contains referable number of digit that should be lighten
+MOV R18, R21				//Just put an appropriate number (that should be lighten) in R18
 LDI R16, 0b_0000_0001		//turn on PC0 (1st digit)
 OUT PORTC, R16
-RJMP auxStart			//go to specific digit displaying
+RJMP auxStart				//go to specific digit displaying
 
 secondDig:
-.undef theDigitNow
-.def theDigitNow=R22		//symbolic name for "variable" that contains referable number of digit that should be lighten
+MOV R18, R22				//Just put an appropriate number (that should be lighten) in R18
 LDI R16, 0b_0000_0010		//turn on PC1 (2nd digit)
 OUT PORTC, R16
-RJMP auxStart			//go to specific digit displaying
+RJMP auxStart				//go to specific digit displaying
 
 thirdDig:
-.undef theDigitNow
-.def theDigitNow=R23		//symbolic name for "variable" that contains referable number of digit that should be lighten
+MOV R18, R23				//Just put an appropriate number (that should be lighten) in R18
 LDI R16, 0b_0000_0100		//turn on PC2 (3rd digit)
 OUT PORTC, R16
-RJMP auxStart			//go to specific digit displaying
+RJMP auxStart				//go to specific digit displaying
 
 ;--------------------------------------------------------------------------------------------
 //Auxiliary Routine//
 auxStart:		//if one of 3 digits is chosen, then select a sign to be displayed
 
-CPI theDigitNow, 0	//depending on what current digit should shows, jumping onto the digits displaying
+CPI R18, 0	//depending on what current digit should shows, jumping onto the digits displaying
 BREQ disp0
-CPI theDigitNow, 1
+CPI R18, 1
 BREQ disp1
-CPI theDigitNow, 2
+CPI R18, 2
 BREQ disp2
-CPI theDigitNow, 3
+CPI R18, 3
 BREQ disp3
-CPI theDigitNow, 4
+CPI R18, 4
 BREQ disp4
-CPI theDigitNow, 5
+CPI R18, 5
 BREQ disp5
-CPI theDigitNow, 6
+CPI R18, 6
 BREQ disp6
-CPI theDigitNow, 7
+CPI R18, 7
 BREQ disp7
-CPI theDigitNow, 8
+CPI R18, 8
 BREQ disp8
-CPI theDigitNow, 9
+CPI R18, 9
 BREQ disp9
 
 //There is no overflow protection, there's no way to display hexadecimal numbers or stuff!
