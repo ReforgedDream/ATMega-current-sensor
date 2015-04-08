@@ -12,7 +12,7 @@
 .equ segind7 = 0x7	//
 .equ segind8 = 0x7F	//
 .equ segind9 = 0x6F	//
-.equ segindDash = 0b_0100_0000	//"-" sign
+.equ segindDash = 0b_0100_0000		//"-" sign
 .equ segindA = 0b_0111_0111		//"A"
 .equ segindB = 0b_0111_1100		//"b"
 .equ segindC = 0b_0011_1001		//"C"
@@ -124,6 +124,8 @@ Reset:
 	OUT SPH, R16
 	SEI			//interrupts enabled globally
 
+CLT				//clear the T flag that means "incorrect number to display"
+
 LDI digitToDisp1, 0x00		//initializing the LED digits...
 LDI digitToDisp2, 0x00
 LDI digitToDisp3, 0x00
@@ -171,13 +173,18 @@ RJMP Start		//Go to start
 auxStart:		//if one of 3 digits is chosen, then select a sign to be displayed
 
 CLT			//if everything will be correct (see below) then clear the T flag (which means "incorrect number")
-LDI R19, 0x10		//Just because stupid (but useful) CPSE cannot into immediate numbers
-CPSE R18, R19		//if one of the registers is more than F...
-SET			//then set the T flag (which means "incorrect number")
 
-LDI R19, 0x00		//
-CPSE R18, R19		//same for less than 0
-SET			//
+CPI R18, 0x10		//if one of the registers...
+BRLO label1		//...is more than F...
+SET			//...then set the T flag (which means "incorrect number")
+
+label1:
+
+CPI R18, 0x00		//same for less than 0
+BRPL label2		//BRanch if PLus (if the N flag in SREG is cleared)
+SET
+
+label2:
 
 CPI R18, 0	//depending on what current digit should shows, jumping onto the digits displaying
 BREQ disp0
