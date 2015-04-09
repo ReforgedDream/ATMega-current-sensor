@@ -133,7 +133,8 @@ LDI digitToDisp3, 0x00
 LDI overflowsCounterLow, 0x00	//...and the register pair of overflows counter...
 LDI overflowsCounterHigh, 0x00 
 
-LDI R17, 0x00			//...and the cycling register R17
+LDI R17, 0x00			//...and the cycling register R17...
+LDI R18, 0x00			//...and the R18 (current symbol for the indicator)
 
 LDI R16, 0xFF
 OUT DDRC, R16	//write 1-s into each port C...
@@ -148,9 +149,9 @@ OUT TIMSK, R16			//now we have an overflow interrupt enabled for timer0
 
 LDI R16, 0x00			//cleaning R16 for the order's sake
 
-LDI digitToDisp1, 1	//display "123" on the LED
-LDI digitToDisp2, 2
-LDI digitToDisp3, 3
+LDI digitToDisp1, 0xF	//display "123" on the LED
+LDI digitToDisp2, 5
+LDI digitToDisp3, 0
 
 ;--------------------------------------------------------------------------------------------
 //Main Routine//
