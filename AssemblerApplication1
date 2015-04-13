@@ -27,7 +27,7 @@
 //150 Hz (0x01A1) works well for the LED indicator
 
 //symbolic custom registers names
-.def digitToDisp1 = R21			//1st digit to be displayed on the LED. Only digits from 0 to 9 are defined!
+.def digitToDisp1 = R21			//1st digit to be displayed on the LED. Only hexadecimal digits are defined!
 .def digitToDisp2 = R22			//2nd digit to be displayed on the LED
 .def digitToDisp3 = R23			//3rd digit to be displayed on the LED
 .def overflowsCounterLow = R24		//incrementing every time when overflow of the timer0 occurs
@@ -107,7 +107,7 @@ payload:
 	LDI overflowsCounterLow, 0x00	//zeroing the overflows counter
 	LDI overflowsCounterHigh, 0x00
 //this string executes once in a certain period
-	INC R17				//Circling from 0 to 2 periodically (fast), for determine which digit should be lighted
+	INC R17				//Circling from 0 to 2 periodically (fast), for determine which digit should be lit
 	CPI R17, 3			//compare with 3
 	BRSH moreThan2		//BRanch if Same or Higher than 3
 	RETI
@@ -149,9 +149,9 @@ OUT TIMSK, R16			//now we have an overflow interrupt enabled for timer0
 
 LDI R16, 0x00			//cleaning R16 for the order's sake
 
-LDI digitToDisp1, 0xF	//display "123" on the LED
-LDI digitToDisp2, 5
-LDI digitToDisp3, 0
+LDI digitToDisp1, 0x10	//display something on the LED
+LDI digitToDisp2, 0xC
+LDI digitToDisp3, 0xF
 
 ;--------------------------------------------------------------------------------------------
 //Main Routine//
@@ -159,17 +159,41 @@ Start:
 
 CLT			//if everything will be correct (see below) then clear the T flag (which means "incorrect number")
 
-CPI R18, 0x10		//if one of the registers...
-BRLO label1		//...is more than F...
-SET			//...then set the T flag (which means "incorrect number")
+CPI digitToDisp1, 0x10		//if the 1st register...
+BRLO HH1			//...is more than F...
+SET				//...then set the T flag (which means "incorrect number")
 
-label1:
+HH1:
 
-CPI R18, 0x00		//same for less than 0
-BRPL label2		//BRanch if PLus (if the N flag in SREG is cleared)
+	CPI digitToDisp2, 0x10		//if the 2nd one...
+	BRLO HH2			//...is more than F...
+	SET				//...then set the T flag (which means "incorrect number")
+
+HH2:
+
+		CPI digitToDisp3, 0x10		//if the 3rd one...
+		BRLO HH3			//...is more than F...
+		SET				//...then set the T flag (which means "incorrect number")
+
+HH3:
+
+CPI digitToDisp1, 0x00		//same for less than 0
+BRPL LL1			//BRanch if PLus (if the N flag in SREG is cleared)
 SET
 
-label2:
+LL1:
+
+	CPI digitToDisp2, 0x00
+	BRPL LL2			//BRanch if PLus (if the N flag in SREG is cleared)
+	SET
+
+LL2:
+
+		CPI digitToDisp3, 0x00
+		BRPL LL3			//BRanch if PLus (if the N flag in SREG is cleared)
+		SET
+
+LL3:
 
 CPI R17, 0			//Is it time to display 1st digit of LED?
 BREQ firstDig
@@ -227,22 +251,22 @@ RJMP Start	//Go to start of the Main Routine
 firstDig:
 LDI R16, 0b_0000_0001		//turn on PC0 (1st digit)
 OUT PORTC, R16
-BRTS dispE			//if the number is incorrect, display the "E" letter (Err)
-	MOV R18, R21		//Just put an appropriate number (that should be lighten) in R18
+BRTS dispE			//if the number is incorrect, display the "E" letter ("Err")
+	MOV R18, digitToDisp1	//Just put an appropriate number (that should be lit) in R18
 RJMP auxStart			//go to specific digit displaying
 
 secondDig:
 LDI R16, 0b_0000_0010		//turn on PC1 (2nd digit)
 OUT PORTC, R16
-BRTS dispR			//if the number is incorrect, display the "r" letter (Err)
-	MOV R18, R22		//Just put an appropriate number (that should be lighten) in R18
+BRTS dispR			//if the number is incorrect, display the "r" letter ("Err")
+	MOV R18, digitToDisp2	//Just put an appropriate number (that should be lit) in R18
 RJMP auxStart			//go to specific digit displaying
 
 thirdDig:
 LDI R16, 0b_0000_0100		//turn on PC2 (3rd digit)
 OUT PORTC, R16
-BRTS dispR			//if the number is incorrect, display the "r" letter (Err)
-	MOV R18, R23		//Just put an appropriate number (that should be lighten) in R18
+BRTS dispR			//if the number is incorrect, display the "r" letter ("Err")
+	MOV R18, digitToDisp3	//Just put an appropriate number (that should be lit) in R18
 RJMP auxStart			//go to specific digit displaying
 
 ;--------------------------------------------------------------------------------------------
