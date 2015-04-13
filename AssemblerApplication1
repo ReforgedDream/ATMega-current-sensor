@@ -88,30 +88,29 @@
 ;--------------------------------------------------------------------------------------------
 //Interrupts Handler//
 Timer0Over:	//Timer0 overflow interrupt
-/*
-LDI R22, 0xFF
-CPSE (overflowsCounterHigh&overflowsCounterLow), R22	//if bitwise AND of the overflowsCounter's parts returns 
-				    			//0xFF, then skip next string
-*/
+
+IN R19, SREG	//Stores SREG in R19...
+PUSH R19	//...and then stores the value of SREG in stack
+
 ADIW overflowsCounterHigh:overflowsCounterLow, 1	//incrementing the whole word
 
-CPI overflowsCounterHigh, presetHigh		//if the higher register contains half of preset...
-BREQ checking2
-RETI
-checking2: 
-	CPI overflowsCounterLow, presetLow	//AND the lower register contains another half...
-	BREQ payload				//....then go to executing our payload
-RETI
+CPI overflowsCounterHigh, presetHigh	//if the higher register contains half of preset...
+BRNE exitInt1				//...AND...
 
-payload:
+CPI overflowsCounterLow, presetLow	//...the lower register contains another half, then go to executing our payload
+BRNE exitInt1				//else - exit
+
+//this string executes once in a certain period
 	LDI overflowsCounterLow, 0x00	//zeroing the overflows counter
 	LDI overflowsCounterHigh, 0x00
-//this string executes once in a certain period
-	INC R17				//Circling from 0 to 2 periodically (fast), for determine which digit should be lit
-	CPI R17, 3			//compare with 3
-	BRSH moreThan2		//BRanch if Same or Higher than 3
-	RETI
-moreThan2:	LDI R17, 0	//reset to 0
+	INC R17		//Circling from 0 to 2 periodically (fast), for determine which digit should be lit
+	CPI R17, 3	//compare with 3
+	BRNE exitInt1	//if not 3, then exit, else reset R17 to 0
+	LDI R17, 0	//reset to 0
+
+exitInt1:
+POP R19			//Extract SREG value from stack...
+OUT SREG, R19		//...and apply it to SREG
 
 RETI
 //End of Interrupts Handler//
@@ -124,7 +123,7 @@ Reset:
 	OUT SPH, R16
 	SEI			//interrupts enabled globally
 
-CLT				//clear the T flag that means "incorrect number to display"
+CLT				//clear the T flag which means "incorrect number to display"
 
 LDI digitToDisp1, 0x00		//initializing the LED digits...
 LDI digitToDisp2, 0x00
@@ -134,11 +133,12 @@ LDI overflowsCounterLow, 0x00	//...and the register pair of overflows counter...
 LDI overflowsCounterHigh, 0x00 
 
 LDI R17, 0x00			//...and the cycling register R17...
-LDI R18, 0x00			//...and the R18 (current symbol for the indicator)
+LDI R18, 0x00			//...and the R18 (current symbol for the indicator)...
+LDI R19, 0x00			//...and the R19 (temporary storage for saving SREG in stack)
 
 LDI R16, 0xFF
-OUT DDRC, R16	//write 1-s into each port C...
-OUT DDRD, R16	//...and port D direction registers
+OUT DDRC, R16			//write 1-s into each port C...
+OUT DDRD, R16			//...and port D direction registers
 
 LDI R16, 0b_0000_0001		//set CS00 bit in TCCR0 register
 OUT TCCR0, R16			//now using system clock for timer0 without prescaler
@@ -149,7 +149,7 @@ OUT TIMSK, R16			//now we have an overflow interrupt enabled for timer0
 
 LDI R16, 0x00			//cleaning R16 for the order's sake
 
-LDI digitToDisp1, 0x10	//display something on the LED
+LDI digitToDisp1, 0x1		//display something on the LED
 LDI digitToDisp2, 0xC
 LDI digitToDisp3, 0xF
 
