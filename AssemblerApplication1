@@ -208,8 +208,8 @@ RJMP Start		//Go to start
 //End of Main Routine//
 ;--------------------------------------------------------------------------------------------
 
-//Auxiliary Routine//
-auxStart:		//if one of 3 digits is chosen, then select a sign to be displayed
+//Decoding the value of R18//
+Decode:		//if one of 3 digits is chosen, then select a sign to be displayed
 
 CPI R18, 0	//depending on what current digit should shows, jumping onto the digits displaying
 BREQ disp0
@@ -245,7 +245,6 @@ CPI R18, 0x0F
 BREQ dispF
 
 RJMP Start	//Go to start of the Main Routine
-//End of Auxiliary Routine//
 ;--------------------------------------------------------------------------------------------
 
 firstDig:
@@ -253,21 +252,21 @@ LDI R16, 0b_0000_0001		//turn on PC0 (1st digit)
 OUT PORTC, R16
 BRTS dispE			//if the number is incorrect, display the "E" letter ("Err")
 	MOV R18, digitToDisp1	//Just put an appropriate number (that should be lit) in R18
-RJMP auxStart			//go to specific digit displaying
+RJMP decode			//go to specific digit displaying
 
 secondDig:
 LDI R16, 0b_0000_0010		//turn on PC1 (2nd digit)
 OUT PORTC, R16
 BRTS dispR			//if the number is incorrect, display the "r" letter ("Err")
 	MOV R18, digitToDisp2	//Just put an appropriate number (that should be lit) in R18
-RJMP auxStart			//go to specific digit displaying
+RJMP decode			//go to specific digit displaying
 
 thirdDig:
 LDI R16, 0b_0000_0100		//turn on PC2 (3rd digit)
 OUT PORTC, R16
 BRTS dispR			//if the number is incorrect, display the "r" letter ("Err")
 	MOV R18, digitToDisp3	//Just put an appropriate number (that should be lit) in R18
-RJMP auxStart			//go to specific digit displaying
+RJMP decode			//go to specific digit displaying
 
 ;--------------------------------------------------------------------------------------------
 
