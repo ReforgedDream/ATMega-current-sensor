@@ -1,16 +1,16 @@
 General purpose registers used in program:
 
-Name	Symbolic name			Involved			Purpose
-			              		in interrupts?	
+Name	Symbolic name		Involved		Purpose
+				in interrupts?	
 
-R16								-					Almost for everything
-R17								Yes					Which 7-segment should be lit right now
-R18								-					Current symbol for the indicator
-R19								Yes					Temporary storage for SREG
+R16				-			Almost for everything
+R17				Yes			Which 7-segment should be lit right now
+R18				-			Current symbol for the indicator
+R19				Yes			Temporary storage for SREG
 
-R21		digitToDisp1			-
-R22		digitToDisp2			-
-R23		digitToDisp3			-
-R24		overflowsCounterLow		Yes
-R25		overflowsCounterHigh	Yes
+R21	digitToDisp1		-
+R22	digitToDisp2		-
+R23	digitToDisp3		-
+R24	overflowsCounterLow	Yes
+R25	overflowsCounterHigh	Yes
 
