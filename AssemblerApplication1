@@ -114,8 +114,15 @@ OUT SREG, R19		//...and apply it to SREG
 
 RETI
 //End of Interrupts Handler//
-;--------------------------------------------------------------------------------------------
 
+;--------------------------------------------------------------------------------------------
+//Storage of static data in flash
+decAddrTable: .dw disp0, disp1, disp2, disp3, disp4, \
+		disp5, disp6, disp7, disp8, disp9, \
+		dispA, dispB, dispC, dispD, dispE, dispF, \
+		dispR, dispDash	//Adresses of the labels, stored in a certain place (decAddrTable) in program memory
+
+;--------------------------------------------------------------------------------------------
 Reset:
 	LDI R16, Low(RAMEND)	//stack initialization
 	OUT SPL, R16
@@ -211,40 +218,30 @@ RJMP Start		//Go to start
 //Decoding the value of R18//
 Decode:		//if one of 3 digits is chosen, then select a sign to be displayed
 
-CPI R18, 0	//depending on what current digit should shows, jumping onto the digits displaying
-BREQ disp0
-CPI R18, 1
-BREQ disp1
-CPI R18, 2
-BREQ disp2
-CPI R18, 3
-BREQ disp3
-CPI R18, 4
-BREQ disp4
-CPI R18, 5
-BREQ disp5
-CPI R18, 6
-BREQ disp6
-CPI R18, 7
-BREQ disp7
-CPI R18, 8
-BREQ disp8
-CPI R18, 9
-BREQ disp9
-CPI R18, 0x0A
-BREQ dispA
-CPI R18, 0x0B
-BREQ dispB
-CPI R18, 0x0C
-BREQ dispC
-CPI R18, 0x0D
-BREQ dispD
-CPI R18, 0x0E
-BREQ dispE
-CPI R18, 0x0F
-BREQ dispF
+LSL R18				//Logical Shift Left: a number gets multiplied by 2 (e.g. 0011<<1 == 0110, 3*2=6)
+LDI ZL, Low(decAddrTable*2)	//Put the low part of the table of addresses' address into the Z
+LDI ZH, High(decAddrTable*2)	//Same for the high one
+//Note that the preprocessing of the assembler interpretes addresses as words (for using in program counter)
+//And, in order to appeal to specific bytes (not the whole word), we should multiply an address by 2
 
-RJMP Start	//Go to start of the Main Routine
+CLR R16		//CLeaRing the R16
+ADD ZL, R18	//Adding the "offset" to the address of the table of addresses
+ADC ZH, R16	//If there was an overflow string upper ^, the "C" flag should appear
+		//So we can handle this flag by ADding zero with Carry 
+//Now the Z points to the beginning of the table PLUS number of cells defined by the R18
+//After all, the Z points exactly to desired address in the table
+
+LPM R26, Z+	//Load (from Program Memory) a content of the cell the Z points to. And increment the Z.
+LPM R27, Z	//Next part of final destination address
+//LPM command works with bytes, not with words, remember?
+
+MOVW ZH:ZL, R27:R26	//now the desired address goes into the Z
+
+IJMP	//go to the address of desired subsequence.
+//IT'S MAGIC I AIN'T GONNA EXPLAIN THINGS
+//Have just read this http://easyelectronics.ru/avr-uchebnyj-kurs-vetvleniya.html
+
+RJMP Start	//Go to start of the Main Routine <--- probably, now with index jumping, this string is useless
 ;--------------------------------------------------------------------------------------------
 
 firstDig:
