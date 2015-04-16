@@ -5,7 +5,7 @@ Name	Symbolic name		Involved		Purpose
 
 R16				-			Almost for everything
 R17				Yes			Which 7-segment should be lit right now
-R18				-			Current symbol for the indicator
+R18				-			Current symbol for the indicator, also involved in "decoding" routine
 R19				Yes			Temporary storage for SREG
 
 R21	digitToDisp1		-
@@ -13,4 +13,5 @@ R22	digitToDisp2		-
 R23	digitToDisp3		-
 R24	overflowsCounterLow	Yes
 R25	overflowsCounterHigh	Yes
-
+R26				-			A temporary register pair...
+R27				-			...to initialize the Z pointer in "decoding" routine
