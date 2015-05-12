@@ -19,4 +19,4 @@ E  |_|.DP   C
 
     D
     
-Logical "1" is making the segment turns on. Logical "0" - the opposite.
+Logical "1" makes a segment turn on. Logical "0" - respectively "0".
